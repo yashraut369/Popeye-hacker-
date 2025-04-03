@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Cybersecurity theme colors
+				cyber: {
+					'dark': '#0d1117',
+					'gray': '#161b22',
+					'light-gray': '#21262d',
+					'blue': '#58a6ff',
+					'green': '#39d353',
+					'red': '#f85149',
+					'yellow': '#e3b341',
+					'purple': '#8957e5'
 				}
 			},
 			borderRadius: {
@@ -84,11 +96,25 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'pulse': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' },
+				},
+				'typing': {
+					'0%': { width: '0' },
+					'100%': { width: '100%' }
+				},
+				'blink': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0' }
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'typing': 'typing 3.5s steps(40, end), blink .75s step-end infinite',
 			}
 		}
 	},
