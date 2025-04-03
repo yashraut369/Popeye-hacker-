@@ -37,3 +37,5 @@ export type Tool = {
   category: ToolCategory;
   icon: string; // icon name from lucide-react
 };
+
+export * from './ai';

@@ -3,8 +3,19 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { VoiceCommandType } from "@/types";
+import { AIProvider } from "@/types/ai";
 import { Mic, MicOff, Volume2, Settings } from "lucide-react";
+import AISettings from "./AISettings";
+import { aiService } from "@/services/ai-service";
+import { toast } from "sonner";
 
 const VoiceAssistant: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
@@ -17,6 +28,8 @@ const VoiceAssistant: React.FC = () => {
       response: "Hey there, ethical hacker! I'm your AI assistant. How can I help you today?"
     }
   ]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>("perplexity");
 
   const toggleListening = () => {
     if (isListening) {
@@ -66,25 +79,101 @@ const VoiceAssistant: React.FC = () => {
       })
     );
     
-    // Simulate processing and response
+    // Use AI service if API key is set, otherwise simulate a response
+    const processCommand = async () => {
+      try {
+        const commandId = commands.find(cmd => cmd.status === "processing")?.id;
+        if (!commandId) return;
+        
+        const apiKey = aiService.getApiKey(selectedProvider);
+        if (!apiKey) {
+          setCommands(prev => 
+            prev.map(cmd => {
+              if (cmd.status === "processing") {
+                return {
+                  ...cmd,
+                  status: "responded",
+                  response: `API key for ${selectedProvider} is not set. Please configure it in settings.`
+                };
+              }
+              return cmd;
+            })
+          );
+          setIsListening(false);
+          return;
+        }
+        
+        const result = await aiService.generateResponse(
+          selectedProvider,
+          [
+            { 
+              role: "system", 
+              content: "You are an AI assistant for ethical hackers. Respond to queries like you're their helpful tech-savvy brother. Be encouraging and enthusiastic. Focus on cybersecurity topics and keep responses concise and actionable. Don't ever mention that you're an AI assistant or model." 
+            },
+            { 
+              role: "user", 
+              content: randomCommand 
+            }
+          ],
+          { temperature: 0.7 }
+        );
+        
+        setCommands(prev => 
+          prev.map(cmd => {
+            if (cmd.id === commandId) {
+              return {
+                ...cmd,
+                status: "responded",
+                response: result.text
+              };
+            }
+            return cmd;
+          })
+        );
+      } catch (error) {
+        console.error("Error generating AI response:", error);
+        toast.error(`Error: ${error.message}`);
+        setCommands(prev => 
+          prev.map(cmd => {
+            if (cmd.status === "processing") {
+              return {
+                ...cmd,
+                status: "error",
+                response: `Error: ${error.message}`
+              };
+            }
+            return cmd;
+          })
+        );
+      } finally {
+        setIsListening(false);
+      }
+    };
+    
     setTimeout(() => {
-      setCommands(prev => 
-        prev.map(cmd => {
-          if (cmd.status === "processing") {
-            return {
-              ...cmd,
-              status: "responded",
-              response: generateResponse(randomCommand)
-            };
-          }
-          return cmd;
-        })
-      );
-      setIsListening(false);
+      const hasApiKey = aiService.getApiKey(selectedProvider);
+      if (hasApiKey) {
+        processCommand();
+      } else {
+        // Fallback to simulated response
+        setCommands(prev => 
+          prev.map(cmd => {
+            if (cmd.status === "processing") {
+              return {
+                ...cmd,
+                status: "responded",
+                response: generateSimulatedResponse(randomCommand)
+              };
+            }
+            return cmd;
+          })
+        );
+        setIsListening(false);
+      }
     }, 2000);
   };
   
-  const generateResponse = (command: string): string => {
+  const generateSimulatedResponse = (command: string): string => {
     if (command.includes("security scan")) {
       return "Initiating a security scan on your local network. This will take a few minutes. I'll analyze for common vulnerabilities and open ports. I've got your back, brother!";
     } else if (command.includes("vulnerabilities")) {
@@ -100,6 +189,8 @@ const VoiceAssistant: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-cyber-dark">
+      <AISettings open={showSettings} onClose={() => setShowSettings(false)} />
+      
       <ScrollArea className="flex-1 p-4">
         {commands.map((cmd) => (
           <div key={cmd.id} className="mb-6">
@@ -147,15 +238,31 @@ const VoiceAssistant: React.FC = () => {
       </ScrollArea>
       
       <div className="border-t border-cyber-light-gray p-4 flex items-center justify-between">
-        <div className="text-xs text-gray-400">
-          {isListening ? "Listening for commands..." : "Click the microphone to speak"}
+        <div className="flex items-center space-x-2">
+          <Select
+            value={selectedProvider}
+            onValueChange={(value) => setSelectedProvider(value as AIProvider)}
+          >
+            <SelectTrigger className="w-32 h-8 text-xs bg-cyber-gray border-cyber-light-gray">
+              <SelectValue placeholder="Select API" />
+            </SelectTrigger>
+            <SelectContent className="bg-cyber-gray border-cyber-light-gray">
+              <SelectItem value="perplexity">Perplexity</SelectItem>
+              <SelectItem value="grok">Grok</SelectItem>
+              <SelectItem value="gemini">Gemini</SelectItem>
+              <SelectItem value="cohere">Cohere</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-gray-400">
+            {isListening ? "Listening..." : "Click mic to speak"}
+          </span>
         </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="icon"
             className="rounded-full border-cyber-light-gray hover:border-cyber-blue hover:bg-cyber-blue hover:bg-opacity-10"
-            onClick={() => {}}
+            onClick={() => setShowSettings(true)}
           >
             <Settings className="h-4 w-4" />
           </Button>

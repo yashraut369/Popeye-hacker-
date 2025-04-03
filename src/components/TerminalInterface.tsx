@@ -3,6 +3,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TerminalCommand } from "@/types";
+import { AIProvider } from "@/types/ai";
+import { getAITerminalResponse } from "./AITerminalResponder";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const TerminalInterface: React.FC = () => {
   const [commands, setCommands] = useState<TerminalCommand[]>([
@@ -17,6 +26,8 @@ const TerminalInterface: React.FC = () => {
   const [currentCommand, setCurrentCommand] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>("perplexity");
+  const [useAI, setUseAI] = useState<boolean>(false);
 
   useEffect(() => {
     // Focus input when component mounts
@@ -47,22 +58,62 @@ const TerminalInterface: React.FC = () => {
     setCommands((prevCommands) => [...prevCommands, newCommand]);
     setCurrentCommand("");
 
-    // Simulate command processing
-    setTimeout(() => {
+    // Process command
+    if (useAI) {
+      processAICommand(currentCommand, newCommand.id);
+    } else {
+      // Simulate command processing
+      setTimeout(() => {
+        setCommands((prevCommands) =>
+          prevCommands.map((cmd) => {
+            if (cmd.id === newCommand.id) {
+              return {
+                ...cmd,
+                isLoading: false,
+                status: "success",
+                response: processCommand(currentCommand),
+              };
+            }
+            return cmd;
+          })
+        );
+      }, 500);
+    }
+  };
+
+  const processAICommand = async (cmd: string, commandId: string) => {
+    try {
+      const aiResponse = await getAITerminalResponse(cmd, selectedProvider);
+      
       setCommands((prevCommands) =>
-        prevCommands.map((cmd) => {
-          if (cmd.id === newCommand.id) {
+        prevCommands.map((command) => {
+          if (command.id === commandId) {
             return {
-              ...cmd,
+              ...command,
               isLoading: false,
               status: "success",
-              response: processCommand(currentCommand),
+              response: aiResponse,
             };
           }
-          return cmd;
+          return command;
         })
       );
-    }, 500);
+    } catch (error) {
+      console.error("AI Terminal error:", error);
+      setCommands((prevCommands) =>
+        prevCommands.map((command) => {
+          if (command.id === commandId) {
+            return {
+              ...command,
+              isLoading: false,
+              status: "error",
+              response: `Error: ${error.message}`,
+            };
+          }
+          return command;
+        })
+      );
+    }
   };
 
   const processCommand = (cmd: string): string => {
@@ -163,18 +214,49 @@ Use "help [tool]" for more information on a specific tool.
         ))}
       </ScrollArea>
       
-      <form onSubmit={handleSubmit} className="border-t border-cyber-light-gray p-4 flex items-center">
-        <span className="text-cyber-green mr-2">$</span>
-        <Input
-          ref={inputRef}
-          type="text"
-          value={currentCommand}
-          onChange={(e) => setCurrentCommand(e.target.value)}
-          className="flex-1 bg-transparent border-none text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 pl-0"
-          placeholder="Type command..."
-          autoComplete="off"
-        />
-      </form>
+      <div className="border-t border-cyber-light-gray p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <label className="flex items-center space-x-2 text-xs">
+            <input
+              type="checkbox" 
+              checked={useAI}
+              onChange={() => setUseAI(!useAI)}
+              className="rounded border-cyber-light-gray text-cyber-blue focus:ring-0 h-3 w-3"
+            />
+            <span>Use AI Responses</span>
+          </label>
+          
+          {useAI && (
+            <Select
+              value={selectedProvider}
+              onValueChange={(value) => setSelectedProvider(value as AIProvider)}
+            >
+              <SelectTrigger className="w-32 h-7 text-xs bg-cyber-gray border-cyber-light-gray ml-2">
+                <SelectValue placeholder="Select API" />
+              </SelectTrigger>
+              <SelectContent className="bg-cyber-gray border-cyber-light-gray">
+                <SelectItem value="perplexity">Perplexity</SelectItem>
+                <SelectItem value="grok">Grok</SelectItem>
+                <SelectItem value="gemini">Gemini</SelectItem>
+                <SelectItem value="cohere">Cohere</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        
+        <form onSubmit={handleSubmit} className="flex items-center">
+          <span className="text-cyber-green mr-2">$</span>
+          <Input
+            ref={inputRef}
+            type="text"
+            value={currentCommand}
+            onChange={(e) => setCurrentCommand(e.target.value)}
+            className="flex-1 bg-transparent border-none text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 pl-0"
+            placeholder="Type command..."
+            autoComplete="off"
+          />
+        </form>
+      </div>
     </div>
   );
 };
