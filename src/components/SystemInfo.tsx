@@ -51,7 +51,7 @@ const SystemInfo: React.FC<SystemInfoProps> = ({ systemInfo }) => {
             <span className="text-xs text-gray-400">{systemInfo.cpu}</span>
             <span className="text-xs text-cyber-blue">{cpuUsage}%</span>
           </div>
-          <Progress value={cpuUsage} className="h-1.5 bg-cyber-light-gray" indicatorClassName="bg-cyber-blue" />
+          <Progress value={cpuUsage} className="h-1.5 bg-cyber-light-gray [&>div]:bg-cyber-blue" />
         </div>
       </Card>
 
@@ -65,7 +65,7 @@ const SystemInfo: React.FC<SystemInfoProps> = ({ systemInfo }) => {
             <span className="text-xs text-gray-400">{systemInfo.memory}</span>
             <span className="text-xs text-cyber-purple">{memoryUsage}%</span>
           </div>
-          <Progress value={memoryUsage} className="h-1.5 bg-cyber-light-gray" indicatorClassName="bg-cyber-purple" />
+          <Progress value={memoryUsage} className="h-1.5 bg-cyber-light-gray [&>div]:bg-cyber-purple" />
         </div>
       </Card>
 
